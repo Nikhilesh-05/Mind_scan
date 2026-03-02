@@ -1,0 +1,70 @@
+# Project Presentation: MindScan - Multimodal Depression Detection System
+
+## 1. Abstract
+Depression is a pervasive mental health condition that is often underdiagnosed due to the subjective nature of traditional self-reporting assessments and the stigma surrounding mental health. This project proposes a novel "Multimodal Depression Detection System" that leverages artificial intelligence to objectively analyze text (conversational sentiment), audio (vocal prosody and tone), and video (facial expressions). By combining these three modalities, the application generates a comprehensive "Fusion Score" that accurately identifies the risk level of depressive symptoms. The system aims to provide an accessible, private, and automated preliminary screening tool to support clinical diagnosis and encourage early intervention.
+
+## 2. Problem Statement
+Current clinical methods for diagnosing depression rely heavily on manual questionnaires (e.g., PHQ-9) and face-to-face evaluations, which can be prone to self-reporting bias, subjective interpretation, and inconsistency. Furthermore, the lack of accessible screening tools often prevents individuals from seeking timely help. There is a critical need for an automated, objective system capable of continuous and multimodal assessment to detect subtle behavioral and physiological markers of depression that clinical interviews alone might miss.
+
+## 3. Objective
+The primary objective of this project is to develop an accessible web-based platform capable of analyzing a user's mental state through three distinct modalities:
+- **Text Analysis:** Extract sentiment and key psychological signal markers from chat interactions.
+- **Audio Analysis:** Identify prosodic features and affective states from voice recordings.
+- **Video Analysis:** Implement real-time facial expression tracking to monitor emotional fluctuations.
+- **Data Fusion:** Aggregate processed data points to compute an overarching mental health risk score and generate a downloadable clinical-style report.
+
+## 4. Why This Project?
+Mental health resources are scarce, and professional help can be expensive or intimidating to pursue. This project addresses the gap in preliminary diagnostics by employing cutting-edge multimodal AI technologies. By fusing text, audio, and visual data, the system achieves a far higher accuracy rate than unimodal approaches. It gives users immediate, objective insights into their emotional well-being within a private, unbiased environment, ultimately acting as an early-warning system that can prevent the exacerbation of depressive conditions.
+
+## 5. Technology Stack
+- **Frontend Architecture:** React 18, Vite (bundler), Tailwind CSS (styling), Framer Motion (animations), Zustand (state management).
+- **Backend Architecture:** FastAPI (Python asynchronous framework), Uvicorn (ASGI server).
+- **Database & Storage:** PostgreSQL/SQLite, SQLAlchemy (Async ORM), Alembic (Migrations).
+- **Machine Learning & AI Integration:** 
+  - *Video:* `@vladmandic/face-api` for client-side face detection and emotion tracking.
+  - *Audio/Text (Future/Mocked):* OpenAI Whisper, Librosa, Sarvam AI APIs.
+- **Reporting:** `fpdf2` for dynamic PDF generation.
+- **DevOps:** Git, Docker Compose (for rapid multi-container orchestration).
+
+## 5. Proposed Methodology
+The system employs a microservices-inspired architecture built around real-time data ingestion and processing. 
+1. **Data Acquisition:** The React frontend captures user interactions—text inputs via a chatbot interface, vocal recordings using the Web Audio API, and facial expressions via webcam utilizing `face-api.js`.
+2. **Feature Extraction:** 
+   - *Text:* NLP processes text for phrasing indicative of hopelessness or fatigue.
+   - *Audio:* Audio processing layers extract pitch, energy variations, and pauses.
+   - *Video:* Computer vision algorithms isolate the primary face and map muscle movements to core emotions (happy, sad, neutral) over a sliding time-window.
+3. **Data Fusion & Analysis:** The FastAPI backend gathers the modality features and utilizes a mock Sarvam AI heuristic fusion model to calculate a synthesized risk score, weighting video and audio cues heavily alongside explicit textual signals.
+4. **Reporting:** Results are formatted into a downloadable PDF report generated dynamically using `fpdf2`, outlining risk factors and recommended remedies.
+
+## 6. Architectural Diagram (Conceptual Layout)
+[User / Browser Client]
+          |
+    (React / Vite Frontend)
+      /      |       \
+[Chatbot] [Mic/Audio] [Webcam/FaceAPI]
+      \      |       /
+       \     |      /  (RESTful JSON / Binary Payloads)
+        \    |     /
+    [FastAPI Backend Server]
+    (Authentication via JWT)
+             |
+       [Fusion Engine]
+  (Aggregates Text, Audio, Video Data)
+             |
+   [Report Generation module] -- > [fpdf2 PDF Builder]
+             |
+    [PostgreSQL / SQLite Database]
+  (Stores Sessions, Users, Results)
+
+## 7. Workplan / Timeline
+- **Week 1-2 (Design & Scaffolding):** Establish the Vite/React frontend, FastAPI backend, Docker compose setups, and PostgreSQL/SQLite database schema.
+- **Week 3-4 (Authentication & Basic UI):** Implement secure JWT registration/login and construct the core dashboard, sidebar, and layout styling.
+- **Week 5-6 (Modality Modules):** Develop the text chatbot functionality, build the audio recording interface, and integrate real-time facial tracking via `@vladmandic/face-api`.
+- **Week 7-8 (Fusion Logic & Reporting):** Develop backend aggregation logic to combine the 3 modalities into a Fusion Score. Build the PDF generation pipeline layout.
+- **Week 9-10 (Testing & Polish):** Conduct end-to-end testing, debug component communications, refine ML confidence values, and deploy the application.
+
+## 8. Expected Outcome
+The expected outcome is a fully functional web application deployed locally or to the cloud. A user will be able to log in securely, interact with a conversational agent, record a voice sample, and submit to a 30-second facial expression scan. The system will instantaneously output an integrated risk-assessment report featuring graphs, identified negative psychological signals, an explicit clinical risk level (e.g., Low, Moderate, High), and personalized mental health recommendations. 
+
+## 9. Conclusion
+The MindScan Multimodal Depression Detection System demonstrates the critical role that comprehensive AI can play in the future of telehealth and psychiatric screening. By moving away from single-vector metrics toward a fused, multimodal approach modeling text, sound, and vision simultaneously, the system mirrors the holistic observation tactics of trained human clinicians. This platform serves as a vital proof-of-concept that objective, scalable, and automated mental wellness tracking is both achievable and essential for promoting global mental health.

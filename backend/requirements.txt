@@ -1,0 +1,37 @@
+# ====================================
+# Core dependencies (required to run)
+# ====================================
+
+# FastAPI & Server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+alembic==1.14.1
+psycopg2-binary==2.9.10
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+
+# Settings & Env
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Redis & Celery
+redis==5.2.1
+celery==5.4.0
+
+# HTTP Client
+httpx>=0.28.0
+
+# PDF Generation
+reportlab>=4.2.0
+
+# Media Storage
+cloudinary>=1.41.0
+fpdf2==2.8.6

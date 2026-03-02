@@ -1,0 +1,74 @@
+# TECHNICAL ARCHITECTURE & IMPLEMENTATION REPORT
+## Project: MindScan - Multimodal Depression Detection System
+
+---
+
+## 1. SYSTEM ARCHITECTURE OVERVIEW
+MindScan is built on a modern, decoupled client-server architecture. The system is designed to process highly sensitive biological and conversational data in real-time. To ensure low latency and strict data privacy, the architecture pushes heavy machine learning computation (specifically Computer Vision) to the client-side browser edge, while executing secure data persistence, authentication, and algorithmic result fusion on a high-performance asynchronous backend server.
+
+---
+
+## 2. FRONTEND TECHNICAL IMPLEMENTATION
+The client-side application acts as the data acquisition layer, directly interfacing with the user’s hardware (Microphone and Web Camera) via the browser's MediaDevices API.
+
+### 2.1 Technology Stack (Frontend)
+*   **Core Framework:** React 18
+*   **Build Engine:** Vite (Chosen over Webpack for its native ES modules, utilizing esbuild for significantly faster hot-module replacement and optimized production builds).
+*   **Routing:** React Router DOM v6 (Client-side routing protecting authenticated dashboard routes).
+*   **State Management:** Zustand (Implemented for global state management. It avoids the heavy boilerplate of Redux while allowing components to subscribe to specific authentication and session state slices).
+*   **Styling Engine:** Tailwind CSS (Utility-first framework driving the responsive, dark-mode glassmorphism aesthetic).
+*   **Animation Physics:** Framer Motion (Driving layout transitions, modal pop-ups, and the countdown timers during media capture).
+*   **Data Visualization:** Recharts & Chart.js (Used to dynamically plot the Fusion Engine's output arrays into easily digestible pie/bar charts on the report dashboard).
+
+### 2.2 Modality Implementations (Client-Side)
+*   **Video Capture Module:** Built using the `@vladmandic/face-api` deep learning library. 
+    *   *Mechanism:* The app requests `getUserMedia()` access. Video frames are piped into a hidden HTML `<video>` element. A `requestAnimationFrame` loop passes these frames through the client-side neural network models (`ssd_mobilenetv1` for face detection, and a specific 68-point face landmark model for emotion weights).
+    *   *Optimization:* A fixed 30-second sliding window prevents memory leaks. The system calculates a running average of the emotion confidence arrays (Happy, Sad, Neutral, Disgust) at ~15 frames per second. An algorithmic score multiplier (2.5x) is applied locally to the "Sad" threshold to counter the base model's tendency to under-predict subtle depressive micro-expressions.
+*   **Audio Capture Module:** Built using the standard Web Audio API and `MediaRecorder`.
+    *   *Mechanism:* Captures the user's voice in 15-to-30 second WAV chunks. Simultaneously, an `AudioContext` and `AnalyserNode` are attached to the stream to build the real-time visual waveform (plotting byte frequency data on an HTML5 `<canvas>`).
+*   **Chat Module:** 
+    *   *Mechanism:* A React-controlled chat log state. Posts asynchronous JSON requests to the backend NLP endpoint, waiting for sentiment classification before rendering the bot's response.
+
+---
+
+## 3. BACKEND TECHNICAL IMPLEMENTATION
+The server-side application functions as the central nervous system. It handles secure data routing, database persistence, and mathematical multimodal fusion. It is entirely completely asynchronous to prevent blocking the event loop when processing multiple concurrent API connections or database transactions.
+
+### 3.1 Technology Stack (Backend)
+*   **Core Framework:** FastAPI (Chosen for its native `async/await` support, automatic Pydantic data validation, and built-in Swagger UI documentation).
+*   **Server Engine:** Uvicorn (ASGI web server implementation for Python).
+*   **ORM (Object-Relational Mapping):** SQLAlchemy (Configured in `ext.asyncio` mode to enable concurrent database querying).
+*   **Database Migrations:** Alembic (Tracks model changes and applies schema updates gracefully).
+*   **Document Generation:** `fpdf2` (A Python library used to procedurally draw graphs, text, and tables into a binary PDF payload).
+
+### 3.2 Authentication & Security Pipeline
+*   **Password Hashing:** Implemented using `passlib` with the `bcrypt` algorithm. Passwords are mathematically salted and hashed before ever hitting the database.
+*   **Stateless Session Management:** Implemented via JSON Web Tokens (JWT) using the `python-jose` library. 
+    *   *Mechanism:* Upon a `/auth/login` POST request, if the bcrypt hash matches, FastAPI signs a payload containing the `user_id` using a cryptographic secret key (`HS256` algorithm). The React frontend stores this token and attaches it to the `Authorization: Bearer <token>` header on all subsequent requests. The FastAPI Dependency Injection system intercepts and validates this token before allowing access to any protected route (like generating a report).
+
+### 3.3 Database Architecture (Data Layer)
+*   **Engine:** PostgreSQL (Production) / SQLite3 (Local Development fallback).
+*   **Schema Design:** The relational schema heavily utilizes Foreign Key cascading.
+    *   `User`: Stores `id`, `email`, and `hashed_password`.
+    *   `Session`: Acts as the parent container for a specific diagnostic attempt (`id`, `user_id`, `status`). 
+    *   `ChatResult`, `VideoResult`, `AudioResult`: Child tables linked to the `session_id`. They store the algorithmically generated metadata (e.g., Sentiment scores, PHQ-9 flag arrays, bounding box confidence intervals) encoded as JSON strings inside `VARCHAR` or native `JSON` column types.
+
+---
+
+## 4. THE MULTIMODAL FUSION ENGINE
+The final critical component of the architecture is the algorithmic Fusion Engine located in `backend/app/routers/report.py`. 
+
+### 4.1 Fusion Mechanism
+Instead of simply averaging the three modalities, the engine applies weighted heuristic logic based on clinical psychology principles.
+1.  **Retrieval Data Parsing:** The engine queries the database (using `scalars().first()` to prevent tuple unboxing crashes) to pull the JSON data for the target session's Chat, Audio, and Video.
+2.  **Text Risk Calculation:** Evaluates the specific sentiment dictionary. If the text holds severe negative sentiment or hits specific PHQ-9 trigger words (extracted from the NLP phase), it applies a steep penalty (up to a 0.95 text risk value).
+3.  **Algorithmic Weighting:** The individual modal risks are combined. 
+    *   *Example Weighting Equation:* `fusion_score = max(text_risk, phq9_avg, 0.15)`
+    *   The engine dynamically checks which modalities actually exist (in case the user skipped the video portion, the math recalculates relative weights dynamically to 50/50 for Audio/Text).
+4.  **Risk Categorization:** The floating-point `fusion_score` is parsed through conditional boundaries:
+    *   `score >= 0.7` -> High Risk
+    *   `score >= 0.4` -> Moderate Risk
+    *   `score < 0.4`  -> Low Risk
+
+### 4.2 PDF Compilation Strategy
+Once the Fusion Engine builds the final master JSON tree, the user queries the `/report/download/` endpoint. The `_generate_pdf()` function unpacks this JSON data and sequentially calls `pdf.cell()` and `pdf.multi_cell()` routines. It translates the stringified arrays into structured text blocks containing lifetime risk projections, PHQ-9 warning factors, clinical disclaimers, and remedy instructions, finally returning it via a FastAPI `StreamingResponse` as a `application/pdf` media type directly into the frontend.
