@@ -34,7 +34,7 @@ export default function Chat() {
                 }]);
             }
         }).catch(console.error);
-    }, [currentSession]);
+    }, [currentSession, navigate]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,7 +54,7 @@ export default function Chat() {
             });
             setMessages((prev) => [...prev, { role: 'assistant', content: data.bot_reply }]);
             setSentiment(data.sentiment);
-        } catch (err) {
+        } catch {
             setMessages((prev) => [...prev, {
                 role: 'assistant',
                 content: "I'm sorry, I'm having trouble right now. Please try again.",

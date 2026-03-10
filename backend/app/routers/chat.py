@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-import re
 
 from app.database import get_db
 from app.models.user import User
@@ -51,10 +50,9 @@ PHQ9_KEYWORDS = {
 def _analyze_sentiment(text: str) -> dict:
     """Analyze sentiment from text using keyword matching with negation awareness."""
     lower = text.lower().strip()
-    words = lower.split()
 
-    neg_score = 0
-    pos_score = 0
+    neg_score = 0.0
+    pos_score = 0.0
     neu_score = 0.3  # base neutral
 
     # Check for negation + positive (e.g., "not feeling good" = negative)
@@ -80,9 +78,9 @@ def _analyze_sentiment(text: str) -> dict:
     # Normalize scores
     total = neg_score + pos_score + neu_score
     return {
-        "positive": round(min(pos_score / total, 0.95), 2),
-        "neutral": round(min(neu_score / total, 0.95), 2),
-        "negative": round(min(neg_score / total, 0.95), 2),
+        "positive": round(min(pos_score / total, 0.95), 2),  # type: ignore
+        "neutral": round(min(neu_score / total, 0.95), 2),  # type: ignore
+        "negative": round(min(neg_score / total, 0.95), 2),  # type: ignore
     }
 
 
@@ -95,7 +93,7 @@ def _detect_phq9(text: str) -> dict:
         for kw in keywords:
             if kw in lower:
                 score += 0.3
-        signals[category] = round(min(score, 1.0), 2)
+        signals[category] = round(min(score, 1.0), 2)  # type: ignore
     return signals
 
 
@@ -164,9 +162,9 @@ def _compute_cumulative_sentiment(messages: list) -> dict:
         return {"positive": 0.15, "neutral": 0.70, "negative": 0.15}
 
     return {
-        "positive": round(sum(all_pos) / len(all_pos), 2),
-        "neutral": round(sum(all_neu) / len(all_neu), 2),
-        "negative": round(sum(all_neg) / len(all_neg), 2),
+        "positive": round(sum(all_pos) / len(all_pos), 2),  # type: ignore
+        "neutral": round(sum(all_neu) / len(all_neu), 2),  # type: ignore
+        "negative": round(sum(all_neg) / len(all_neg), 2),  # type: ignore
     }
 
 
@@ -176,55 +174,61 @@ async def send_message(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Verify the session belongs to the user
-    result = await db.execute(
-        select(Session).where(Session.id == data.session_id, Session.user_id == current_user.id)
-    )
-    session = result.scalar_one_or_none()
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    try:
+        # Verify the session belongs to the user
+        result = await db.execute(
+            select(Session).where(Session.id == data.session_id, Session.user_id == current_user.id)
+        )
+        session = result.scalar_one_or_none()
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
 
-    # Get or create chat result
-    result = await db.execute(select(ChatResult).where(ChatResult.session_id == data.session_id))
-    chat_result = result.scalar_one_or_none()
+        # Get or create chat result
+        result = await db.execute(select(ChatResult).where(ChatResult.session_id == data.session_id))
+        chat_result = result.scalar_one_or_none()
 
-    if not chat_result:
-        chat_result = ChatResult(session_id=data.session_id, conversation_json={"messages": []})
-        db.add(chat_result)
+        if not chat_result:
+            chat_result = ChatResult(session_id=data.session_id, conversation_json={"messages": []})
+            db.add(chat_result)
 
-    # Add user message
-    messages = chat_result.conversation_json.get("messages", [])
-    messages.append({"role": "user", "content": data.message})
+        # Add user message
+        messages = list(chat_result.conversation_json.get("messages", []))
+        messages.append({"role": "user", "content": data.message})
 
-    # Analyze sentiment from THIS message
-    current_sentiment = _analyze_sentiment(data.message)
-    phq9 = _detect_phq9(data.message)
+        # Analyze sentiment from THIS message
+        current_sentiment = _analyze_sentiment(data.message)
+        phq9 = _detect_phq9(data.message)
 
-    # Generate empathetic bot reply based on actual sentiment
-    bot_reply = _get_mock_reply(data.message, current_sentiment)
-    messages.append({"role": "assistant", "content": bot_reply})
+        # Generate empathetic bot reply based on actual sentiment
+        bot_reply = _get_mock_reply(data.message, current_sentiment)
+        messages.append({"role": "assistant", "content": bot_reply})
 
-    # Compute cumulative sentiment across ALL user messages
-    cumulative_sentiment = _compute_cumulative_sentiment(messages)
+        # Compute cumulative sentiment across ALL user messages
+        cumulative_sentiment = _compute_cumulative_sentiment(messages)
 
-    # Accumulate PHQ-9 signals across conversation
-    existing_phq9 = chat_result.phq9_signals or {}
-    for k, v in phq9.items():
-        existing_phq9[k] = round(max(existing_phq9.get(k, 0), v), 2)
+        # Accumulate PHQ-9 signals across conversation
+        existing_phq9 = dict(chat_result.phq9_signals or {})
+        for k, v in phq9.items():
+            existing_phq9[k] = round(max(existing_phq9.get(k, 0), v), 2)  # type: ignore
 
-    # Update chat result
-    chat_result.conversation_json = {"messages": messages}
-    chat_result.sentiment_scores = cumulative_sentiment
-    chat_result.phq9_signals = existing_phq9
+        # Update chat result — assign NEW dicts so SQLAlchemy detects changes
+        chat_result.conversation_json = {"messages": messages}
+        chat_result.sentiment_scores = cumulative_sentiment
+        chat_result.phq9_signals = existing_phq9
 
-    await db.flush()
+        await db.flush()
 
-    return ChatMessageResponse(
-        bot_reply=bot_reply,
-        sentiment=cumulative_sentiment,
-        phq9_signals=existing_phq9,
-        conversation_length=len(messages),
-    )
+        return ChatMessageResponse(
+            bot_reply=bot_reply,
+            sentiment=cumulative_sentiment,
+            phq9_signals=existing_phq9,
+            conversation_length=len(messages),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] send_message: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process message")
 
 
 @router.get("/session/{session_id}", response_model=ChatHistoryResponse)
@@ -233,21 +237,27 @@ async def get_chat_history(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Session).where(Session.id == session_id, Session.user_id == current_user.id)
-    )
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Session not found")
+    try:
+        result = await db.execute(
+            select(Session).where(Session.id == session_id, Session.user_id == current_user.id)
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Session not found")
 
-    result = await db.execute(select(ChatResult).where(ChatResult.session_id == session_id))
-    chat_result = result.scalar_one_or_none()
+        result = await db.execute(select(ChatResult).where(ChatResult.session_id == session_id))
+        chat_result = result.scalar_one_or_none()
 
-    if not chat_result:
-        return ChatHistoryResponse(session_id=session_id, messages=[], sentiment_scores={}, phq9_signals={})
+        if not chat_result:
+            return ChatHistoryResponse(session_id=session_id, messages=[], sentiment_scores={}, phq9_signals={})
 
-    return ChatHistoryResponse(
-        session_id=session_id,
-        messages=chat_result.conversation_json.get("messages", []),
-        sentiment_scores=chat_result.sentiment_scores or {},
-        phq9_signals=chat_result.phq9_signals or {},
-    )
+        return ChatHistoryResponse(
+            session_id=session_id,
+            messages=chat_result.conversation_json.get("messages", []),
+            sentiment_scores=chat_result.sentiment_scores or {},
+            phq9_signals=chat_result.phq9_signals or {},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_chat_history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve chat history")

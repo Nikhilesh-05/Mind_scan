@@ -1,8 +1,9 @@
 """FastAPI application entry point."""
+import traceback
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import init_db
@@ -11,8 +12,11 @@ from app.database import init_db
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
-    # Create tables on startup (dev mode)
-    await init_db()
+    # Create tables on startup (dev mode) — never crash the app
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"[WARN] Database init error (non-fatal): {e}")
     yield
 
 
@@ -22,6 +26,19 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+# Global exception handler — prevents 500 crashes from killing the server
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions and return a JSON error instead of crashing."""
+    print(f"[ERROR] Unhandled exception on {request.method} {request.url.path}:")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error. Please try again."},
+    )
+
 
 # CORS middleware
 app.add_middleware(

@@ -29,7 +29,7 @@ export default function Audio() {
             if (timerRef.current) clearInterval(timerRef.current);
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
         };
-    }, [currentSession]);
+    }, [currentSession, navigate]);
 
     const startRecording = async () => {
         try {
@@ -72,7 +72,7 @@ export default function Audio() {
                 animFrameRef.current = requestAnimationFrame(updateWaveform);
             };
             updateWaveform();
-        } catch (err) {
+        } catch {
             setError('Microphone access denied. Please allow microphone access.');
         }
     };
@@ -103,7 +103,7 @@ export default function Audio() {
             setResult(data);
             setRecordingState('done');
             refreshCurrentSession();
-        } catch (err) {
+        } catch {
             setError('Analysis failed. Please try again.');
             setRecordingState('stopped');
         }

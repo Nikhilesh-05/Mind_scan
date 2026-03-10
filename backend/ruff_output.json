@@ -1,0 +1,365 @@
+[
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 44,
+      "row": 5
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\main.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 6
+          },
+          "location": {
+            "column": 1,
+            "row": 5
+          }
+        }
+      ],
+      "message": "Remove unused import: `fastapi.staticfiles.StaticFiles`"
+    },
+    "location": {
+      "column": 33,
+      "row": 5
+    },
+    "message": "`fastapi.staticfiles.StaticFiles` imported but unused",
+    "noqa_row": 5,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 16,
+      "row": 33
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\audio.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 19,
+            "row": 33
+          },
+          "location": {
+            "column": 5,
+            "row": 33
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `audio_bytes`"
+    },
+    "location": {
+      "column": 5,
+      "row": 33
+    },
+    "message": "Local variable `audio_bytes` is assigned to but never used",
+    "noqa_row": 33,
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 10,
+      "row": 5
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\chat.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 6
+          },
+          "location": {
+            "column": 1,
+            "row": 5
+          }
+        }
+      ],
+      "message": "Remove unused import: `re`"
+    },
+    "location": {
+      "column": 8,
+      "row": 5
+    },
+    "message": "`re` imported but unused",
+    "noqa_row": 5,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 10,
+      "row": 54
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\chat.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 13,
+            "row": 54
+          },
+          "location": {
+            "column": 5,
+            "row": 54
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `words`"
+    },
+    "location": {
+      "column": 5,
+      "row": 54
+    },
+    "message": "Local variable `words` is assigned to but never used",
+    "noqa_row": 54,
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 10,
+      "row": 3
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\report.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 4
+          },
+          "location": {
+            "column": 1,
+            "row": 3
+          }
+        }
+      ],
+      "message": "Remove unused import: `os`"
+    },
+    "location": {
+      "column": 8,
+      "row": 3
+    },
+    "message": "`os` imported but unused",
+    "noqa_row": 3,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 30,
+      "row": 4
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\report.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 5
+          },
+          "location": {
+            "column": 1,
+            "row": 4
+          }
+        }
+      ],
+      "message": "Remove unused import: `datetime.datetime`"
+    },
+    "location": {
+      "column": 22,
+      "row": 4
+    },
+    "message": "`datetime.datetime` imported but unused",
+    "noqa_row": 4,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 43,
+      "row": 6
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\report.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from fastapi.responses import StreamingResponse",
+          "end_location": {
+            "column": 62,
+            "row": 6
+          },
+          "location": {
+            "column": 1,
+            "row": 6
+          }
+        }
+      ],
+      "message": "Remove unused import: `fastapi.responses.JSONResponse`"
+    },
+    "location": {
+      "column": 31,
+      "row": 6
+    },
+    "message": "`fastapi.responses.JSONResponse` imported but unused",
+    "noqa_row": 6,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 54,
+      "row": 13
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\session.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 14
+          },
+          "location": {
+            "column": 1,
+            "row": 13
+          }
+        }
+      ],
+      "message": "Remove unused import: `app.models.analysis_report.AnalysisReport`"
+    },
+    "location": {
+      "column": 40,
+      "row": 13
+    },
+    "message": "`app.models.analysis_report.AnalysisReport` imported but unused",
+    "noqa_row": 13,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 65,
+      "row": 2
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\video.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from fastapi import APIRouter, Depends, HTTPException",
+          "end_location": {
+            "column": 86,
+            "row": 2
+          },
+          "location": {
+            "column": 1,
+            "row": 2
+          }
+        }
+      ],
+      "message": "Remove unused import"
+    },
+    "location": {
+      "column": 56,
+      "row": 2
+    },
+    "message": "`fastapi.WebSocket` imported but unused",
+    "noqa_row": 2,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 86,
+      "row": 2
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\routers\\video.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from fastapi import APIRouter, Depends, HTTPException",
+          "end_location": {
+            "column": 86,
+            "row": 2
+          },
+          "location": {
+            "column": 1,
+            "row": 2
+          }
+        }
+      ],
+      "message": "Remove unused import"
+    },
+    "location": {
+      "column": 67,
+      "row": 2
+    },
+    "message": "`fastapi.WebSocketDisconnect` imported but unused",
+    "noqa_row": 2,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 41,
+      "row": 2
+    },
+    "filename": "D:\\B.TECH-SRM\\ANTI-GRAVITY\\minor_project\\backend\\app\\schemas\\schemas.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from pydantic import BaseModel",
+          "end_location": {
+            "column": 41,
+            "row": 2
+          },
+          "location": {
+            "column": 1,
+            "row": 2
+          }
+        }
+      ],
+      "message": "Remove unused import: `pydantic.EmailStr`"
+    },
+    "location": {
+      "column": 33,
+      "row": 2
+    },
+    "message": "`pydantic.EmailStr` imported but unused",
+    "noqa_row": 2,
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  }
+]

@@ -45,6 +45,10 @@ export default function VideoPage() {
     const stableEmotionRef = useRef(null);  // currently displayed stable emotion
     const mockEmotionRef = useRef('neutral'); // mock mode: current simulated emotion
 
+    // FIX: Use a ref to track emotionHistory so stopCapture always has the latest data.
+    // The useState closure in setInterval callbacks captures stale state; refs don't.
+    const emotionHistoryRef = useRef([]);
+
     useEffect(() => {
         if (!currentSession) {
             navigate('/dashboard');
@@ -52,7 +56,7 @@ export default function VideoPage() {
         }
         loadFaceApi();
         return cleanup;
-    }, [currentSession]);
+    }, [currentSession, navigate]);
 
     const cleanup = () => {
         if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
@@ -86,6 +90,7 @@ export default function VideoPage() {
         rawBufferRef.current = [];
         stableEmotionRef.current = null;
         mockEmotionRef.current = 'neutral';
+        emotionHistoryRef.current = []; // Reset the ref too
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -117,10 +122,16 @@ export default function VideoPage() {
             intervalRef.current = setInterval(() => {
                 detectEmotion();
             }, DETECTION_INTERVAL);
-        } catch (err) {
+        } catch {
             setState('idle');
             setError('Camera access denied. Please allow camera access and try again.');
         }
+    };
+
+    /** Helper to add a frame to both state AND ref */
+    const addEmotionFrame = (frame) => {
+        emotionHistoryRef.current = [...emotionHistoryRef.current, frame];
+        setEmotionHistory((prev) => [...prev, frame]);
     };
 
     /** Apply smoothing: only switch displayed emotion using a majority vote over the last N detections */
@@ -178,7 +189,7 @@ export default function VideoPage() {
             frame.emotions[emo] = confidence;
 
             applySmoothing(emo, confidence);
-            setEmotionHistory((prev) => [...prev, frame]);
+            addEmotionFrame(frame);
 
             // Send frame to backend (non-blocking) just like real mode
             videoAPI.sendEmotionFrame({
@@ -228,27 +239,28 @@ export default function VideoPage() {
                 // The pre-trained model often under-predicts 'sad' and over-predicts 'neutral' or 'disgusted'.
                 // We add multipliers to balance the sensitivity for our specific use case.
                 const SCORE_MULTIPLIERS = {
-                    sad: 25.0,       // Boost sad massively 
-                    neutral: 0.2,    // Penalize neutral heavily
-                    fearful: 1.5,
-                    angry: 1.5,
-                    disgusted: 0.1   // Suppress disgusted severely (often falsely triggered by mild frowns)
+                    sad: 50.0,       // Immense boost for sadness
+                    angry: 20.0,     // Immense boost for anger
+                    fearful: 20.0,   // Immense boost for fear
+                    neutral: 0.05,   // Heavily penalize neutral
+                    disgusted: 0.1,  // Suppress disgusted
+                    happy: 1.0,
+                    surprised: 1.0
                 };
 
                 // Add a small flat base to 'sad' if it's detected at all to help it overcome the math
                 let maxEmotion = 'neutral';
                 let maxScore = 0;
-                let originalMaxScore = 0; // Keep track of the real confidence for the backend
 
                 const adjustedEmotions = { ...expressions };
 
                 for (const [emotion, score] of Object.entries(expressions)) {
                     let adjustedScore = score;
 
-                    if (emotion === 'sad' && score > 0.000001) {
-                        // Non-linear boost for sad: give it a massive head start if it's > 0.0001% confident
+                    if (['sad', 'fearful', 'angry'].includes(emotion) && score > 0.0001) {
+                        // Non-linear boost: give it a massive head start if it's even slightly present
                         adjustedScore = (score * SCORE_MULTIPLIERS[emotion]) + 0.8;
-                    } else if (SCORE_MULTIPLIERS[emotion]) {
+                    } else if (SCORE_MULTIPLIERS[emotion] !== undefined) {
                         adjustedScore = score * SCORE_MULTIPLIERS[emotion];
                     }
 
@@ -257,17 +269,16 @@ export default function VideoPage() {
                     if (adjustedScore > maxScore) {
                         maxScore = adjustedScore;
                         maxEmotion = emotion;
-                        originalMaxScore = score; // The un-multiplied confidence
                     }
                 }
 
                 // Apply smoothing before displaying
                 const stableEmo = applySmoothing(maxEmotion, maxScore);
-                setEmotionHistory((prev) => [...prev, {
+                addEmotionFrame({
                     emotions: adjustedEmotions,
                     dominant_emotion: stableEmo,
                     confidence: maxScore,
-                }]);
+                });
 
                 // Send frame to backend (non-blocking)
                 videoAPI.sendEmotionFrame({
@@ -294,9 +305,13 @@ export default function VideoPage() {
 
         setState('processing');
 
+        // FIX: Use the ref instead of the stale state closure
+        const history = emotionHistoryRef.current;
+        console.log('[DEBUG] stopCapture: emotionHistory frames =', history.length);
+
         // Compute distribution from history
         const totals = {};
-        emotionHistory.forEach((f) => {
+        history.forEach((f) => {
             Object.entries(f.emotions).forEach(([k, v]) => {
                 totals[k] = (totals[k] || 0) + v;
             });
@@ -311,16 +326,19 @@ export default function VideoPage() {
             (a, b) => (b[1] > a[1] ? b : a), ['neutral', 0]
         )[0];
 
-        // Try to finalize on backend
+        // Try to finalize on backend — WAIT for success
         try {
-            await videoAPI.finalize(currentSession.id);
-            refreshCurrentSession();
-        } catch (e) { /* non-critical */ }
+            const { data } = await videoAPI.finalize(currentSession.id);
+            console.log('[DEBUG] finalize response:', data);
+            await refreshCurrentSession();
+        } catch (err) {
+            console.error('[WARN] Finalize failed:', err?.response?.data || err.message);
+        }
 
         setDistribution(dist);
         setDominantEmotion(dominant);
         setState('done');
-    }, [emotionHistory, currentSession]);
+    }, [currentSession, refreshCurrentSession]);
 
     const restart = () => {
         cleanup();
@@ -328,6 +346,7 @@ export default function VideoPage() {
         setCountdown(CAPTURE_DURATION);
         setCurrentEmotion(null);
         setEmotionHistory([]);
+        emotionHistoryRef.current = [];
         setDistribution(null);
         setDominantEmotion(null);
     };

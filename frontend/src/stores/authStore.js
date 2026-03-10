@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { authAPI } from '../services/api';
 
-const useAuthStore = create((set, get) => ({
+const useAuthStore = create((set) => ({
     user: JSON.parse(localStorage.getItem('auth_user') || 'null'),
     token: localStorage.getItem('auth_token') || null,
     isAuthenticated: !!localStorage.getItem('auth_token'),

@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     MessageSquare, Mic, Video, FileText, Plus, Clock,
-    CheckCircle2, Circle, ArrowRight, Activity
+    CheckCircle2, Circle, ArrowRight, Activity, WifiOff, RefreshCw
 } from 'lucide-react';
 import useSessionStore from '../stores/sessionStore';
+import { healthCheck } from '../services/api';
 
 const moduleCards = [
     {
@@ -43,14 +44,42 @@ export default function Dashboard() {
     const { currentSession, sessions, isLoading, createSession, loadSessions, setCurrentSession, refreshCurrentSession } = useSessionStore();
     const navigate = useNavigate();
     const [error, setError] = useState(null);
+    const [serverStatus, setServerStatus] = useState('checking'); // checking | online | offline
+    const [retrying, setRetrying] = useState(false);
 
     useEffect(() => {
-        loadSessions();
-        // Refresh current session to pick up module completion updates
-        if (currentSession) {
-            refreshCurrentSession();
-        }
+        checkServer();
     }, []);
+
+    useEffect(() => {
+        if (serverStatus === 'online') {
+            loadSessions();
+            if (currentSession) {
+                refreshCurrentSession();
+            }
+        }
+    }, [serverStatus, currentSession, loadSessions, refreshCurrentSession]);
+
+    const checkServer = async () => {
+        setServerStatus('checking');
+        setRetrying(true);
+
+        // Try up to 3 times with 2s delay
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            const isHealthy = await healthCheck();
+            if (isHealthy) {
+                setServerStatus('online');
+                setRetrying(false);
+                return;
+            }
+            if (attempt < 3) {
+                await new Promise((r) => setTimeout(r, 2000));
+            }
+        }
+
+        setServerStatus('offline');
+        setRetrying(false);
+    };
 
     const handleNewSession = async () => {
         setError(null);
@@ -79,14 +108,72 @@ export default function Dashboard() {
     };
 
     const containerVariants = {
-        hidden: { opacity: 0 },
+        hidden: { opacity: 1 }, // Changed from 0 to 1 to prevent blank screen bug
         show: { opacity: 1, transition: { staggerChildren: 0.1 } },
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
+        hidden: { opacity: 1, y: 10 }, // Changed from 0 to 1
         show: { opacity: 1, y: 0 },
     };
+
+    // Server offline banner
+    if (serverStatus === 'offline') {
+        return (
+            <motion.div
+                initial={{ opacity: 1 }} // Changed from 0 to 1
+                animate={{ opacity: 1 }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '24px' }}
+            >
+                <div style={{
+                    width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(239, 68, 68, 0.1)', border: '2px solid rgba(239, 68, 68, 0.3)',
+                }}>
+                    <WifiOff size={36} style={{ color: '#EF4444' }} />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                    <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+                        Backend Server Not Reachable
+                    </h2>
+                    <p className="text-sm" style={{ color: 'var(--color-text-secondary)', maxWidth: '400px' }}>
+                        The backend server is not running or not responding. Please make sure the backend is started with:
+                    </p>
+                    <code style={{
+                        display: 'block', marginTop: '12px', padding: '12px 20px', borderRadius: '10px',
+                        background: 'var(--color-bg-secondary)', color: 'var(--color-accent-cyan)',
+                        fontSize: '13px', fontFamily: 'monospace',
+                    }}>
+                        cd backend && uvicorn app.main:app --reload
+                    </code>
+                </div>
+                <motion.button
+                    onClick={checkServer}
+                    className="btn-primary"
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    disabled={retrying}
+                    id="retry-connection-btn"
+                >
+                    <RefreshCw size={16} className={retrying ? 'animate-spin' : ''} />
+                    {retrying ? 'Checking...' : 'Retry Connection'}
+                </motion.button>
+            </motion.div>
+        );
+    }
+
+    // Loading state while checking server
+    if (serverStatus === 'checking') {
+        return (
+            <motion.div
+                initial={{ opacity: 1 }} // Changed from 0 to 1
+                animate={{ opacity: 1 }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px' }}
+            >
+                <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--color-accent-purple)' }} />
+                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Connecting to server...</p>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
@@ -228,7 +315,7 @@ export default function Dashboard() {
             </motion.div>
 
             {/* Past Sessions */}
-            {sessions.length > 0 && (
+            {sessions?.length > 0 && (
                 <motion.div variants={itemVariants}>
                     <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text-primary)' }}>
                         Past Sessions

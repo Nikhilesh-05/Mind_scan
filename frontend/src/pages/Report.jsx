@@ -7,7 +7,6 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import useSessionStore from '../stores/sessionStore';
 import { reportAPI } from '../services/api';
-import { useNavigate } from 'react-router-dom';
 
 const riskColors = {
     Low: 'var(--color-accent-green)',
@@ -20,7 +19,6 @@ const modalityIcons = { text: Brain, audio: Mic, video: Video };
 
 export default function Report() {
     const { currentSession } = useSessionStore();
-    const navigate = useNavigate();
     const [report, setReport] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState(null);
